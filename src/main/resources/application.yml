@@ -1,0 +1,19 @@
+spring:
+  data:
+    elasticsearch:
+      cluster-nodes: 127.0.0.1:9200,127.0.0.1:9201
+      cluster-name: elasticsearch
+  kafka:
+    bootstrap-servers: localhost:9092, localhost:9093, localhost:9094
+    consumer:
+      group-id: es-group
+      client-id: es-client
+      value-deserializer: com.weahan.data.elasticsearch.kafka.KafkaDeserializer
+    producer:
+      value-serializer: com.weahan.data.elasticsearch.kafka.KafkaSerializer
+kafka:
+  topic:
+    elasticsearch: Weahan.Data.Elasticsearch
+    elasticsearch-save: Weahan.Data.Elasticsearch.Save
+    elasticsearch-delete: Weahan.Data.Elasticsearch.Delete
+    elasticsearch-update: Weahan.Data.Elasticsearch.Update
