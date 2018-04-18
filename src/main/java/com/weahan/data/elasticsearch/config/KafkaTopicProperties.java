@@ -12,8 +12,6 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "kafka.topic")
 public class KafkaTopicProperties {
 
-    private String elasticsearch;
-
     private String elasticsearchSave;
 
     private String elasticsearchUpdate;
@@ -22,14 +20,6 @@ public class KafkaTopicProperties {
 
     public KafkaTopicProperties() {
 
-    }
-
-    public final String getElasticsearch() {
-        return elasticsearch;
-    }
-
-    public final void setElasticsearch(final String elasticsearch) {
-        this.elasticsearch = elasticsearch;
     }
 
     public final String getElasticsearchSave() {

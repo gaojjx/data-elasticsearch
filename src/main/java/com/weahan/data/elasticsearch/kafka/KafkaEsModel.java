@@ -13,6 +13,15 @@ public class KafkaEsModel implements Serializable {
     private String clusterName;
     private String id;
     private String uri;
+    private String jsonValue;
+
+    public final String getJsonValue() {
+        return jsonValue;
+    }
+
+    public final void setJsonValue(final String jsonValue) {
+        this.jsonValue = jsonValue;
+    }
 
     public final String getIndex() {
         return index;

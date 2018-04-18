@@ -1,7 +1,6 @@
 package com.weahan.data.elasticsearch.repository;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -12,24 +11,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weahan.data.elasticsearch.config.KafkaTopicProperties;
 import com.weahan.data.elasticsearch.kafka.ElasticsearchService;
 import com.weahan.data.elasticsearch.kafka.KafkaEsModel;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.action.update.UpdateRequest;
-import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
@@ -42,7 +33,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
  * @author gao jx
  */
 @Component
-public class ESBaseRepository<T, ID extends Serializable> {
+public class ESBaseRepository {
 
     public static final String FAIL = "fail";
 
@@ -63,7 +54,6 @@ public class ESBaseRepository<T, ID extends Serializable> {
     private KafkaTopicProperties kafkaTopicProperties;
 
     /**
-     * @param t
      * @param id
      * @param index
      * @param type
@@ -71,20 +61,10 @@ public class ESBaseRepository<T, ID extends Serializable> {
      * @param uri
      * @return
      */
-    public String insert(T t, ID id, final String index, final String type, final String clusterName, final String uri) {
+    public String save(String id, final String index, final String type, final String clusterName, final String uri) {
         final KafkaEsModel model = getKafkaEsModel(id, index, type, clusterName, uri);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchSave(), model);
-        logger.debug(result);
-        try {
-            IndexRequest indexRequest = new IndexRequest(index, type, id.toString())
-                    .source(objectMapper.writeValueAsBytes(t), XContentType.JSON);
-            IndexResponse indexResponse = restHighLevelClient.index(indexRequest);
-            return indexResponse.getResult().name();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return "FAIL";
-        }
+        return result;
     }
 
     /**
@@ -96,8 +76,8 @@ public class ESBaseRepository<T, ID extends Serializable> {
      * @param clusterName
      * @return
      */
-    public String getById(ID id, final String index, final String type, final String clusterName) {
-        GetRequest getRequest = new GetRequest(index, type, id.toString());
+    public String getById(String id, final String index, final String type, final String clusterName) {
+        GetRequest getRequest = new GetRequest(index, type, id);
         try {
             GetResponse getResponse = restHighLevelClient.get(getRequest);
             if (getResponse.isExists()) {
@@ -118,31 +98,19 @@ public class ESBaseRepository<T, ID extends Serializable> {
      * @param index
      * @param type
      * @param clusterName
-     * @param uri
      * @return
      */
-    public String deleteById(ID id, final String index, final String type, final String clusterName, final String uri) {
-        final KafkaEsModel model = getKafkaEsModel(id, index, type, clusterName, uri);
+    public String deleteById(String id, final String index, final String type, final String clusterName) {
+        final KafkaEsModel model = getKafkaEsModel(id, index, type, clusterName, null);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchDelete(), model);
         logger.debug(result);
-        if (!SUCCESS.equalsIgnoreCase(result)) {
-            return FAIL;
-        }
-        DeleteRequest request = new DeleteRequest(index, type, id.toString());
-        try {
-            DeleteResponse response = restHighLevelClient.delete(request);
-            return response.getResult().getLowercase();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return FAIL;
-        }
+        return result;
     }
 
-    private KafkaEsModel getKafkaEsModel(final ID id, final String index, final String type, final String clusterName, final String uri) {
+    private KafkaEsModel getKafkaEsModel(final String id, final String index, final String type, final String clusterName, final String uri) {
         final KafkaEsModel model = new KafkaEsModel();
         model.setClusterName(clusterName);
-        model.setId(id.toString());
+        model.setId(id);
         model.setIndex(index);
         model.setType(type);
         model.setUri(uri);
@@ -153,7 +121,6 @@ public class ESBaseRepository<T, ID extends Serializable> {
     /**
      * 根据id更新es的document.
      *
-     * @param t
      * @param id
      * @param index
      * @param type
@@ -161,28 +128,11 @@ public class ESBaseRepository<T, ID extends Serializable> {
      * @param uri
      * @return
      */
-    public String updateById(T t, ID id, final String index, final String type, final String clusterName, final String uri) {
+    public String updateById(String id, final String index, final String type, final String clusterName, final String uri) {
         final KafkaEsModel model = this.getKafkaEsModel(id, index, type, clusterName, uri);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchUpdate(), model);
         logger.debug(result);
-        if (FAIL.equalsIgnoreCase(result)) {
-            return FAIL;
-        }
-        UpdateRequest request = new UpdateRequest(index, type, id.toString());
-        try {
-            request.doc(objectMapper.writeValueAsString(t), XContentType.JSON);
-        }
-        catch (JsonProcessingException e) {
-            e.printStackTrace();
-        }
-        try {
-            UpdateResponse response = restHighLevelClient.update(request);
-            return response.getResult().getLowercase();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-            return "FAIL";
-        }
+        return result;
     }
 
     /**
