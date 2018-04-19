@@ -1,9 +1,7 @@
 package com.weahan.data.elasticsearch.repository;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.weahan.data.elasticsearch.config.KafkaTopicProperties;
 import com.weahan.data.elasticsearch.kafka.ElasticsearchService;
 import com.weahan.data.elasticsearch.kafka.KafkaEsModel;
@@ -35,17 +32,12 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 @Component
 public class ESBaseRepository {
 
-    public static final String FAIL = "fail";
-
-    public static final String SUCCESS = "success";
-
-    public final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private static final String FAIL = "fail";
+    
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
     private RestHighLevelClient restHighLevelClient;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private ElasticsearchService elasticsearchService;
@@ -53,16 +45,20 @@ public class ESBaseRepository {
     @Autowired
     private KafkaTopicProperties kafkaTopicProperties;
 
+    public ESBaseRepository() {
+    }
+
     /**
-     * @param id
-     * @param index
-     * @param type
-     * @param clusterName
-     * @param uri
-     * @return
+     * 保存到es.
+     * @param id id
+     * @param index index
+     * @param type type
+     * @param clusterName clusterName
+     * @param uri uri
+     * @return result
      */
-    public String save(String id, final String index, final String type, final String clusterName, final String uri) {
-        final KafkaEsModel model = getKafkaEsModel(id, index, type, clusterName, uri);
+    public String save(final String id, final String index, final String type, final String clusterName, final String uri) {
+        final KafkaEsModel model = new KafkaEsModel(id, index, type, clusterName, uri);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchSave(), model);
         return result;
     }
@@ -70,16 +66,16 @@ public class ESBaseRepository {
     /**
      * 根据id获取es的document.
      *
-     * @param id
-     * @param index
-     * @param type
-     * @param clusterName
-     * @return
+     * @param id id
+     * @param index index
+     * @param type type
+     * @param clusterName clusterName
+     * @return result
      */
-    public String getById(String id, final String index, final String type, final String clusterName) {
-        GetRequest getRequest = new GetRequest(index, type, id);
+    public String getById(final String id, final String index, final String type, final String clusterName) {
+        final GetRequest getRequest = new GetRequest(index, type, id);
         try {
-            GetResponse getResponse = restHighLevelClient.get(getRequest);
+            final GetResponse getResponse = restHighLevelClient.get(getRequest);
             if (getResponse.isExists()) {
                 final String jsonString = getResponse.getSourceAsString();
                 return jsonString;
@@ -94,42 +90,31 @@ public class ESBaseRepository {
     /**
      * 根据id删除es中的document.
      *
-     * @param id
-     * @param index
-     * @param type
-     * @param clusterName
-     * @return
+     * @param id id
+     * @param index index
+     * @param type type
+     * @param clusterName clusterName
+     * @return result
      */
-    public String deleteById(String id, final String index, final String type, final String clusterName) {
-        final KafkaEsModel model = getKafkaEsModel(id, index, type, clusterName, null);
+    public String deleteById(final String id, final String index, final String type, final String clusterName) {
+        final KafkaEsModel model = new KafkaEsModel(clusterName, id, index, type, null);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchDelete(), model);
         logger.debug(result);
         return result;
     }
 
-    private KafkaEsModel getKafkaEsModel(final String id, final String index, final String type, final String clusterName, final String uri) {
-        final KafkaEsModel model = new KafkaEsModel();
-        model.setClusterName(clusterName);
-        model.setId(id);
-        model.setIndex(index);
-        model.setType(type);
-        model.setUri(uri);
-        return model;
-    }
-
-
     /**
      * 根据id更新es的document.
      *
-     * @param id
-     * @param index
-     * @param type
-     * @param clusterName
-     * @param uri
-     * @return
+     * @param id id
+     * @param index index
+     * @param type type
+     * @param clusterName clusterName
+     * @param uri uri
+     * @return result
      */
-    public String updateById(String id, final String index, final String type, final String clusterName, final String uri) {
-        final KafkaEsModel model = this.getKafkaEsModel(id, index, type, clusterName, uri);
+    public String updateById(final String id, final String index, final String type, final String clusterName, final String uri) {
+        final KafkaEsModel model = new KafkaEsModel(id, index, type, clusterName, uri);
         final String result = elasticsearchService.sendKafka(kafkaTopicProperties.getElasticsearchUpdate(), model);
         logger.debug(result);
         return result;
@@ -138,32 +123,33 @@ public class ESBaseRepository {
     /**
      * 分页查询es.
      *
-     * @param index
-     * @param queryBuilder
-     * @param pageNo
-     * @param pageSize
-     * @return
+     * @param index index
+     * @param queryBuilder queryBuilder
+     * @param pageNo pageNo
+     * @param pageSize pageSize
+     * @return result
      */
-    public String search(String index, QueryBuilder queryBuilder, int pageNo, int pageSize) {
+    public String search(final String index, final QueryBuilder queryBuilder, final int pageNo, final int pageSize) {
         final SearchRequest searchRequest = new SearchRequest(index);
 //        QueryBuilder queryBuilder = new WildcardQueryBuilder("author", "author");
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(queryBuilder).sort("id").from(pageNo).size(pageSize);
         searchRequest.source(searchSourceBuilder);
         try {
-            SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
+            final SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
             final RestStatus status = searchResponse.status();
-            System.out.println(status);
             final TimeValue took = searchResponse.getTook();
             final SearchHits hits = searchResponse.getHits();
             final Iterator<SearchHit> iterator = hits.iterator();
-            List<String> list = new ArrayList<>();
+            final StringBuilder sb = new StringBuilder("[");
             while (iterator.hasNext()) {
                 final SearchHit searchHit = iterator.next();
                 final String sourceAsString = searchHit.getSourceAsString();
-                list.add(sourceAsString);
+                sb.append(sourceAsString).append(",");
             }
-            return objectMapper.writeValueAsString(list);
+            sb.subSequence(0, sb.length() - 1);
+            sb.append("]");
+            return sb.toString();
         }
         catch (IOException e) {
             e.printStackTrace();

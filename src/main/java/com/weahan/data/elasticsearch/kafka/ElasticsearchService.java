@@ -18,24 +18,27 @@ import org.springframework.util.concurrent.ListenableFuture;
  */
 @Service
 public class ElasticsearchService {
+    private static final String COLON = ":";
+
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    private static final String COLON = ":";
-
     @Autowired
-    public ElasticsearchService(final KafkaTemplate<String, Object> kafkaTemplate) {
-        this.kafkaTemplate = kafkaTemplate;
+    public ElasticsearchService(final KafkaTemplate<String, Object> kafkaTemplateIn) {
+        this.kafkaTemplate = kafkaTemplateIn;
     }
 
 
     /**
      * 把需要操作ES的model发送到kafka队列当中.
-     * @param model
+     *
+     * @param topic topic
+     * @param model model
+     * @return
      */
-    public String sendKafka(String topic, KafkaEsModel model) {
-        StringBuilder sb = new StringBuilder(model.getClusterName())
+    public String sendKafka(final String topic, final KafkaEsModel model) {
+        final StringBuilder sb = new StringBuilder(model.getClusterName())
                 .append(this.COLON).append(model.getIndex())
                 .append(this.COLON).append(model.getType())
                 .append(this.COLON).append(model.getId());
@@ -46,7 +49,8 @@ public class ElasticsearchService {
             final long offset = sendResult.getRecordMetadata().offset();
             if (offset >= 0) {
                 return "success";
-            } else {
+            }
+            else {
                 logger.error("kafka offsetIndex error{}" + model);
                 return "fail";
             }

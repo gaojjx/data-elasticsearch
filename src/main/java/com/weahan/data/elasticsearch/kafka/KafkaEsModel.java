@@ -9,11 +9,27 @@ import java.io.Serializable;
  */
 public class KafkaEsModel implements Serializable {
     private String index;
+
     private String type;
+
     private String clusterName;
+
     private String id;
+
     private String uri;
+
     private String jsonValue;
+
+    public KafkaEsModel() {
+    }
+
+    public KafkaEsModel(final String id, final String index, final String type, final String clusterName, final String uri) {
+        this.id = id;
+        this.index = index;
+        this.type = type;
+        this.clusterName = clusterName;
+        this.uri = uri;
+    }
 
     public final String getJsonValue() {
         return jsonValue;
@@ -61,5 +77,17 @@ public class KafkaEsModel implements Serializable {
 
     public final void setUri(final String uri) {
         this.uri = uri;
+    }
+
+    @Override
+    public String toString() {
+        return "KafkaEsModel{" +
+                "index='" + index + '\'' +
+                ", type='" + type + '\'' +
+                ", clusterName='" + clusterName + '\'' +
+                ", id='" + id + '\'' +
+                ", uri='" + uri + '\'' +
+                ", jsonValue='" + jsonValue + '\'' +
+                '}';
     }
 }

@@ -33,11 +33,12 @@ public class KafkaDeserializer implements Deserializer<Object> {
         }
         catch (IOException e) {
             e.printStackTrace();
+            logger.error("topic: " + s, object);
         }
         catch (ClassNotFoundException e) {
             e.printStackTrace();
+            logger.error("topic: " + s, object);
         }
-        logger.error("topic: " + s, object);
         return object;
     }
 
