@@ -1,14 +1,21 @@
 package com.weahan.data.elasticsearch.repository;
 
 import java.io.IOException;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.weahan.data.elasticsearch.config.KafkaTopicProperties;
 import com.weahan.data.elasticsearch.kafka.ElasticsearchService;
 import com.weahan.data.elasticsearch.kafka.KafkaEsModel;
@@ -17,9 +24,7 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.QueryBuilder;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -30,7 +35,7 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
  * @author gao jx
  */
 @Component
-public class ESBaseRepository {
+public class ElasticsearchRepository {
 
     private static final String FAIL = "fail";
     
@@ -45,7 +50,7 @@ public class ESBaseRepository {
     @Autowired
     private KafkaTopicProperties kafkaTopicProperties;
 
-    public ESBaseRepository() {
+    public ElasticsearchRepository() {
     }
 
     /**
@@ -125,35 +130,37 @@ public class ESBaseRepository {
      *
      * @param index index
      * @param queryBuilder queryBuilder
-     * @param pageNo pageNo
-     * @param pageSize pageSize
+     * @param pageable pageable
      * @return result
      */
-    public String search(final String index, final QueryBuilder queryBuilder, final int pageNo, final int pageSize) {
+    public Page<JSONObject> search(final String index, final QueryBuilder queryBuilder, final Pageable pageable) {
         final SearchRequest searchRequest = new SearchRequest(index);
-//        QueryBuilder queryBuilder = new WildcardQueryBuilder("author", "author");
+        final int pageNumber = pageable.getPageNumber();
+        final int pageSize = pageable.getPageSize();
         final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(queryBuilder).sort("id").from(pageNo).size(pageSize);
+        //查询返回字段过滤掉id
+        searchSourceBuilder.fetchSource(null, "id");
+        searchSourceBuilder.query(queryBuilder).sort("id").from(pageNumber).size(pageSize);
+        final Page<JSONObject> page;
         searchRequest.source(searchSourceBuilder);
         try {
             final SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
-            final RestStatus status = searchResponse.status();
-            final TimeValue took = searchResponse.getTook();
             final SearchHits hits = searchResponse.getHits();
-            final Iterator<SearchHit> iterator = hits.iterator();
-            final StringBuilder sb = new StringBuilder("[");
-            while (iterator.hasNext()) {
-                final SearchHit searchHit = iterator.next();
+            final long total = hits.getTotalHits();
+            final List<JSONObject> jsonObjectList = new ArrayList<>();
+            JSONObject jsonObject;
+            for (final SearchHit searchHit : hits) {
                 final String sourceAsString = searchHit.getSourceAsString();
-                sb.append(sourceAsString).append(",");
+                jsonObject = JSON.parseObject(sourceAsString);
+                jsonObjectList.add(jsonObject);
             }
-            sb.subSequence(0, sb.length() - 1);
-            sb.append("]");
-            return sb.toString();
+            page = new PageImpl<>(jsonObjectList, pageable, total);
+            return page;
         }
         catch (IOException e) {
             e.printStackTrace();
-            return null;
+            logger.error(e.getMessage());
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
     }
 
