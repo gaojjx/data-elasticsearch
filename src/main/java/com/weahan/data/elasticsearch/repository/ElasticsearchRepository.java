@@ -28,6 +28,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 /**
  * TRepository.
@@ -69,7 +70,7 @@ public class ElasticsearchRepository {
     }
 
     /**
-     * 根据id获取es的document.
+     * 默认根据id获取es的document所有字段.
      *
      * @param id id
      * @param index index
@@ -84,6 +85,42 @@ public class ElasticsearchRepository {
             if (getResponse.isExists()) {
                 final String jsonString = getResponse.getSourceAsString();
                 return jsonString;
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+        return FAIL;
+    }
+
+    /**
+     * 自定义查询过滤字段.
+     * @param id id
+     * @param index index
+     * @param type type
+     * @param clusterName clusterName
+     * @param includes 查询结果包含字段
+     * @param excludes 查询结果排除字段
+     * @return result
+     */
+    public String getById(final String id, final String index, final String type, final String clusterName,
+                          final String[] includes, final String[] excludes) {
+        final GetRequest getRequest = new GetRequest(index, type, id);
+        final FetchSourceContext fetchSourceContext = new FetchSourceContext(true, includes, excludes);
+        getRequest.fetchSourceContext(fetchSourceContext);
+        return this.getByGetRequest(getRequest);
+    }
+
+    /**
+     * 通过构建好的GetRequest查询.
+     * @param request GetRequest
+     * @return result
+     */
+    public String getByGetRequest(final GetRequest request) {
+        try {
+            final GetResponse response = restHighLevelClient.get(request);
+            if (response.isExists()) {
+                return response.getSourceAsString();
             }
         }
         catch (IOException e) {
