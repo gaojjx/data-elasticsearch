@@ -3,7 +3,9 @@ package com.weahan.data.elasticsearch.repository;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -199,6 +201,38 @@ public class ElasticsearchRepository {
             logger.error(e.getMessage());
             return new PageImpl<>(Collections.emptyList(), pageable, 0);
         }
+    }
+
+    /**
+     * 自定义分页查询.
+     * @param index index
+     * @param searchSourceBuilder searchSourceBuilder
+     * @return Map
+     */
+    public Map<String, String> search(final String index, final SearchSourceBuilder searchSourceBuilder) {
+        final Map<String, String> map = new HashMap<>();
+        final SearchRequest searchRequest = new SearchRequest(index);
+        searchRequest.source(searchSourceBuilder);
+        try {
+            final SearchResponse searchResponse = restHighLevelClient.search(searchRequest);
+            final SearchHits hits = searchResponse.getHits();
+            final Long total = hits.getTotalHits();
+            map.put("total", total.toString());
+            final StringBuilder sb = new StringBuilder("[");
+            for (final SearchHit searchHit : hits) {
+                final String sourceAsString = searchHit.getSourceAsString();
+                sb.append(sourceAsString).append(",");
+            }
+            sb.subSequence(0, sb.length() - 1);
+            sb.append("]");
+            map.put("content", sb.toString());
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+            map.put("total", "");
+            map.put("content", "[]");
+        }
+        return map;
     }
 
 }
