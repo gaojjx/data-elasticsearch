@@ -1,4 +1,4 @@
-package com.weahan.data.elasticsearch.kafka;
+package com.example.data.elasticsearch.kafka;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

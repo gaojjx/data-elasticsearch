@@ -1,4 +1,4 @@
-package com.weahan.data.elasticsearch.config;
+package com.example.data.elasticsearch.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

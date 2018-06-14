@@ -1,4 +1,4 @@
-package com.weahan.data.elasticsearch.repository;
+package com.example.data.elasticsearch.repository;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,9 +18,9 @@ import org.springframework.stereotype.Component;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.weahan.data.elasticsearch.config.KafkaTopicProperties;
-import com.weahan.data.elasticsearch.kafka.ElasticsearchService;
-import com.weahan.data.elasticsearch.kafka.KafkaEsModel;
+import com.example.data.elasticsearch.config.KafkaTopicProperties;
+import com.example.data.elasticsearch.kafka.ElasticsearchService;
+import com.example.data.elasticsearch.kafka.KafkaEsModel;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.search.SearchRequest;
